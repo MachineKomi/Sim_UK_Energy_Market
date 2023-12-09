@@ -1,33 +1,34 @@
+import random
+import datetime
+
 # Define baseline data for the simulation
 baseline_data = {
     "economic_conditions": {
-        "inflation_rate": 2.5,  # Example average inflation rate
-        "gdp_growth_rate": 1.5  # Example average GDP growth rate
+        "inflation_rate": 2.5,
+        "gdp_growth_rate": 1.5
     },
     "energy_market_conditions": {
-        "electricity_prices": 100,  # Example average price per MWh
-        "gas_prices": 75  # Example average price per MWh
+        "electricity_prices": 100,
+        "gas_prices": 75
     },
     "weather_conditions": {
-        "average_temperature": 10,  # Example average temperature in Celsius
-        "wind_speed": 15  # Example average wind speed in km/h
+        "average_temperature": 10,
+        "wind_speed": 15
     }
 }
 
-# Function to calculate electricity generation based on different power sources
-def calculate_electricity_generation(economic_conditions, weather_conditions, energy_market_conditions):
-    """
-    Calculate electricity generation based on different power sources.
-    Adjusts the generation capacities based on economic and weather conditions.
-    """
+def calculate_electricity_generation_advanced(economic_conditions, weather_data, energy_market_conditions):
     baseline_generation = {
         "gas": 30000,
         "coal": 10000,
-        "wind": 15000,
-        "solar": 8000,
+        "wind": 10000,
+        "solar": 5000,
         "nuclear": 9000
     }
-    baseline_generation["wind"] *= (weather_conditions["wind_speed"] / 15)
+    wind_speed_factor = weather_data["wind_speed"] / 15
+    baseline_generation["wind"] *= wind_speed_factor
+    solar_irradiance_factor = weather_data["solar_irradiance"] / 1000
+    baseline_generation["solar"] *= solar_irradiance_factor
     price_factor = energy_market_conditions["electricity_prices"] / 100
     baseline_generation["gas"] *= (1 / price_factor)
     baseline_generation["coal"] *= (1 / price_factor)
@@ -37,11 +38,7 @@ def calculate_electricity_generation(economic_conditions, weather_conditions, en
         "total_generation": total_generation
     }
 
-# Function to simulate the transmission network efficiency and capacity
 def simulate_transmission_network(electricity_generated, weather_conditions):
-    """
-    Simulate the transmission network efficiency and capacity.
-    """
     baseline_capacity = 50000
     baseline_efficiency = 95
     if weather_conditions["average_temperature"] > 25:
@@ -53,11 +50,7 @@ def simulate_transmission_network(electricity_generated, weather_conditions):
         "actual_transmission": actual_transmission
     }
 
-# Function to simulate the gas network
 def simulate_gas_network(economic_conditions, energy_market_conditions):
-    """
-    Simulate the gas network, including production, import, export, and distribution.
-    """
     baseline_production = 500
     price_factor = energy_market_conditions["gas_prices"] / 75
     adjusted_production = baseline_production * (1 / price_factor)
@@ -71,11 +64,7 @@ def simulate_gas_network(economic_conditions, energy_market_conditions):
         "net_availability": net_gas_availability
     }
 
-# Function to simulate the total electricity and gas import/export for each GSP Group in the UK
 def simulate_gsp_group_import_export(gsp_groups, economic_conditions, energy_market_conditions):
-    """
-    Simulate the total electricity and gas import/export for each GSP Group in the UK.
-    """
     gsp_results = {}
     for gsp in gsp_groups:
         electricity_import = gsp["electricity_import"] * (energy_market_conditions["electricity_prices"] / 100)
@@ -94,11 +83,7 @@ def simulate_gsp_group_import_export(gsp_groups, economic_conditions, energy_mar
         }
     return gsp_results
 
-# Function to calculate the total amount of each power type used to generate the total exported energy
 def calculate_exported_energy_by_source(electricity_generation, gsp_import_export):
-    """
-    Calculate the total amount of each power type used to generate the total exported energy.
-    """
     total_exported_energy = sum(gsp["electricity_export"] for gsp in gsp_import_export.values())
     generation_by_source = electricity_generation["generation_by_source"]
     total_generation = electricity_generation["total_generation"]
@@ -108,28 +93,75 @@ def calculate_exported_energy_by_source(electricity_generation, gsp_import_expor
         exported_energy_by_source[source] = total_exported_energy * source_contribution
     return exported_energy_by_source
 
-# Function to calculate the net demand level for each GSP group and the whole of the UK
-def calculate_net_demand(gsp_groups, electricity_generation, gas_network):
-    """
-    Calculate the net demand level for each GSP group and the whole of the UK.
-    """
-    total_uk_electricity_demand = 0
-    total_uk_gas_demand = 0
-    gsp_net_demands = {}
+def update_economic_conditions(economic_conditions, market_trends):
+    economic_conditions["inflation_rate"] += market_trends["inflation_change"]
+    economic_conditions["gdp_growth_rate"] += market_trends["gdp_growth_change"]
+    economic_conditions["energy_market_conditions"]["electricity_prices"] *= (1 + random.uniform(-0.05, 0.05))
+    economic_conditions["energy_market_conditions"]["gas_prices"] *= (1 + random.uniform(-0.05, 0.05))
+    return economic_conditions
 
+def simulate_demand_fluctuations(gsp_groups, date_time):
     for gsp in gsp_groups:
-        net_electricity_demand = gsp["electricity_demand"] - electricity_generation["total_generation"]
-        net_gas_demand = gsp["gas_demand"] - gas_network["net_availability"]
-        total_uk_electricity_demand += net_electricity_demand
-        total_uk_gas_demand += net_gas_demand
-        gsp_net_demands[gsp["name"]] = {
-            "net_electricity_demand": net_electricity_demand,
-            "net_gas_demand": net_gas_demand
-        }
+        if 17 <= date_time.hour <= 21:
+            gsp["electricity_demand"] *= 1.2
+            gsp["gas_demand"] *= 1.1
+        if date_time.month in [12, 1, 2]:
+            gsp["gas_demand"] *= 1.3
+    return gsp_groups
 
-    total_uk_net_demand = {
-        "total_electricity_demand": total_uk_electricity_demand,
-        "total_gas_demand": total_uk_gas_demand
-    }
+# Example usage
+current_date_time = datetime.datetime.now()
+gsp_groups_demo = [
+    {"name": "GSP1", "electricity_demand": 150, "gas_demand": 180},
+    {"name": "GSP2", "electricity_demand": 130, "gas_demand": 160}
+]
 
-    return {"gsp_net_demands": gsp_net_demands, "total_uk_net_demand": total_uk_net_demand}
+detailed_weather_data = {
+    "average_temperature": 10,
+    "wind_speed": 20,
+    "solar_irradiance": 800
+}
+
+electricity_generation = calculate_electricity_generation_advanced(
+    baseline_data["economic_conditions"],
+    detailed_weather_data,
+    baseline_data["energy_market_conditions"]
+)
+
+transmission_network = simulate_transmission_network(
+    electricity_generation["total_generation"],
+    detailed_weather_data
+)
+
+gas_network = simulate_gas_network(
+    baseline_data["economic_conditions"],
+    baseline_data["energy_market_conditions"]
+)
+
+gsp_import_export = simulate_gsp_group_import_export(
+    gsp_groups_demo,
+    baseline_data["economic_conditions"],
+    baseline_data["energy_market_conditions"]
+)
+
+exported_energy_by_source = calculate_exported_energy_by_source(
+    electricity_generation,
+    gsp_import_export
+)
+
+market_trends_example = {
+    "inflation_change": 0.1,
+    "gdp_growth_change": -0.1
+}
+
+updated_economic_conditions = update_economic_conditions(
+    baseline_data["economic_conditions"],
+    market_trends_example
+)
+
+gsp_groups_with_fluctuations = simulate_demand_fluctuations(
+    gsp_groups_demo,
+    current_date_time
+)
+
+# The results of the simulation can be used as needed
