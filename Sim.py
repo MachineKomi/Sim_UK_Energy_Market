@@ -144,6 +144,21 @@ def simulate_demand_fluctuations(gsp_groups, date_time):
             gsp["gas_demand"] *= 1.3
     return gsp_groups
 
+def simulate_energy_storage(energy_generation, economic_conditions):
+    storage_capacity = 10000  # Example capacity in MWh
+    charge_rate = 0.05  # Example: 5% of total generation
+
+    # Placeholder for a demand threshold, can be dynamically calculated or set
+    some_demand_threshold = 40000  # Example value in MWh
+
+    # Charge or discharge based on excess generation or high demand
+    if energy_generation["total_generation"] > some_demand_threshold:
+        stored_energy = min(storage_capacity, storage_capacity + charge_rate * (energy_generation["total_generation"] - some_demand_threshold))
+    else:
+        stored_energy = max(0, storage_capacity - charge_rate * (some_demand_threshold - energy_generation["total_generation"]))
+
+    return {"storage_capacity": storage_capacity, "stored_energy": stored_energy}
+
 # Example usage
 current_date_time = datetime.datetime.now()
 gsp_groups_demo = [
