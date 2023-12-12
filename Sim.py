@@ -14,7 +14,9 @@ baseline_data = {
     "weather_conditions": {
         "average_temperature": 10,
         "wind_speed": 15,
-        "solar_irradiance": 800  # Added solar irradiance in baseline
+        "solar_irradiance": 800,  # Existing parameter
+        "humidity": 60,          # New parameter
+        "cloud_cover": 0.5       # New parameter (0 to 1 scale)
     }
 }
 
@@ -25,7 +27,7 @@ def validate_input(data, required_keys):
 
 # Enhanced electricity generation function
 def calculate_electricity_generation_advanced(economic_conditions, weather_data, energy_market_conditions):
-    validate_input(weather_data, ["wind_speed", "solar_irradiance"])
+    validate_input(weather_data, ["wind_speed", "solar_irradiance", "cloud_cover"])
     validate_input(energy_market_conditions, ["electricity_prices"])
 
     baseline_generation = {
@@ -37,11 +39,13 @@ def calculate_electricity_generation_advanced(economic_conditions, weather_data,
     }
     wind_speed_factor = weather_data["wind_speed"] / 15
     solar_irradiance_factor = weather_data["solar_irradiance"] / 1000
+    cloud_cover_factor = 1 - weather_data["cloud_cover"]  # Adjustment for cloud cover
+
     price_elasticity = 0.1  # Adjust as per realistic models
 
     # Adjust generation based on weather and price
     baseline_generation["wind"] *= wind_speed_factor
-    baseline_generation["solar"] *= solar_irradiance_factor
+    baseline_generation["solar"] *= solar_irradiance_factor * cloud_cover_factor
     baseline_generation["gas"] *= 1 + price_elasticity * (100 - energy_market_conditions["electricity_prices"])
     baseline_generation["coal"] *= 1 + price_elasticity * (100 - energy_market_conditions["electricity_prices"])
 
@@ -194,5 +198,3 @@ gsp_groups_with_fluctuations = simulate_demand_fluctuations(
     gsp_groups_demo,
     current_date_time
 )
-
-# The results of the simulation can be used as needed
